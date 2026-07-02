@@ -7,11 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app.cache import build_task_list_cache_key, get_redis, invalidate_task_list_cache
-from app.config import settings
-from app.database import get_db
-from app.models.task import TaskPriority, TaskStatus
-from app.schemas.task import (
+from src.cache import build_task_list_cache_key, get_redis, invalidate_task_list_cache
+from src.config import settings
+from src.database import get_db
+from src.models.task import TaskPriority, TaskStatus
+from src.schemas.task import (
     PriorityRecommendationResponse,
     TagSuggestionsResponse,
     TaskCreate,
@@ -22,8 +22,8 @@ from app.schemas.task import (
     TaskTreeNode,
     TaskUpdate,
 )
-from app.services import task_service
-from app.services.llm_service import LLMService, get_llm_service
+from src.services import task_service
+from src.services.llm_service import LLMService, get_llm_service
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 

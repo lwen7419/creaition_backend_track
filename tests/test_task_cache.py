@@ -1,4 +1,4 @@
-from app.cache import TASK_LIST_CACHE_PREFIX
+from src.cache import TASK_LIST_CACHE_PREFIX
 
 
 def test_list_tasks_is_cached(client, redis_client):

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from app.database import Base, engine
-from app.routes import health, items, tasks
+from src.database import Base, engine
+from src.routes import health, items, tasks
 
 Base.metadata.create_all(bind=engine)
 

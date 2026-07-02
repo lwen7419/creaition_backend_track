@@ -1,6 +1,6 @@
 import anthropic
 
-from app.config import settings
+from src.config import settings
 
 DEFAULT_MAX_TOKENS = 16000
 

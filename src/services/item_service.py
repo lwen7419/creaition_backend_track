@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.models.item import Item
-from app.schemas.item import ItemCreate
+from src.models.item import Item
+from src.schemas.item import ItemCreate
 
 
 def get_items(db: Session) -> list[Item]:

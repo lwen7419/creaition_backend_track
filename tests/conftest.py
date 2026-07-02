@@ -5,10 +5,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.cache import get_redis
-from app.database import Base, get_db
-from app.main import app
-from app.services.llm_service import get_llm_service
+from src.cache import get_redis
+from src.database import Base, get_db
+from src.main import app
+from src.services.llm_service import get_llm_service
 
 engine = create_engine(
     "sqlite:///:memory:",

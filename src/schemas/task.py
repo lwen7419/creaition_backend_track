@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.task import TaskPriority, TaskStatus
+from src.models.task import TaskPriority, TaskStatus
 
 
 class TaskBase(BaseModel):

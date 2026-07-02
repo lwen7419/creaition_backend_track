@@ -1,8 +1,8 @@
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session
 
-from app.models.task import Task, TaskPriority, TaskStatus
-from app.schemas.task import TaskCreate, TaskTreeNode, TaskUpdate
+from src.models.task import Task, TaskPriority, TaskStatus
+from src.schemas.task import TaskCreate, TaskTreeNode, TaskUpdate
 
 
 class TaskDependencyError(Exception):

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from app.schemas.health import HealthResponse
-from app.utils.time import utc_now_iso
+from src.schemas.health import HealthResponse
+from src.utils.time import utc_now_iso
 
 router = APIRouter(tags=["health"])
 
