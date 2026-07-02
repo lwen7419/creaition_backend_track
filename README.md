@@ -87,3 +87,6 @@ Halfway through the tasks for backend development track, I realized that I was m
 ## Docs
 
 - [CLAUDE.md](CLAUDE.md) — project context and conventions for AI-assisted development.
+
+## Time spent
+Four hours across two days. 
