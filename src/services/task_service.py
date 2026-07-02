@@ -74,6 +74,10 @@ def get_task(db: Session, task_id: int) -> Task | None:
     return db.query(Task).filter(Task.id == task_id).first()
 
 
+def get_tasks_by_ids(db: Session, task_ids: list[int]) -> list[Task]:
+    return db.query(Task).filter(Task.id.in_(task_ids)).all()
+
+
 def create_task(db: Session, task_in: TaskCreate) -> Task:
     task = Task(
         title=task_in.title,

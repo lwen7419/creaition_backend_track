@@ -8,6 +8,7 @@ from sqlalchemy.pool import StaticPool
 from src.cache import get_redis
 from src.database import Base, get_db
 from src.main import app
+from src.services.embedding_service import get_embedding_service
 from src.services.llm_service import get_llm_service
 
 engine = create_engine(
@@ -65,8 +66,32 @@ def fake_llm_service():
     return FakeLLMService()
 
 
+class FakeEmbeddingService:
+    def __init__(self):
+        self.upserted: dict[str, str] = {}
+        self.deleted: list[str] = []
+        self.search_results: list[str] = []
+        self.last_search: dict | None = None
+
+    def upsert(self, ids, documents, metadatas=None):
+        for task_id, document in zip(ids, documents):
+            self.upserted[task_id] = document
+
+    def search(self, query_text, n_results=5):
+        self.last_search = {"query_text": query_text, "n_results": n_results}
+        return self.search_results
+
+    def delete(self, ids):
+        self.deleted.extend(ids)
+
+
 @pytest.fixture()
-def client(db_session, redis_client, fake_llm_service):
+def fake_embedding_service():
+    return FakeEmbeddingService()
+
+
+@pytest.fixture()
+def client(db_session, redis_client, fake_llm_service, fake_embedding_service):
     def override_get_db():
         try:
             yield db_session
@@ -76,6 +101,7 @@ def client(db_session, redis_client, fake_llm_service):
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_redis] = lambda: redis_client
     app.dependency_overrides[get_llm_service] = lambda: fake_llm_service
+    app.dependency_overrides[get_embedding_service] = lambda: fake_embedding_service
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

@@ -23,6 +23,7 @@ from src.schemas.task import (
     TaskUpdate,
 )
 from src.services import task_service
+from src.services.embedding_service import EmbeddingService, get_embedding_service
 from src.services.llm_service import LLMService, get_llm_service
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -42,6 +43,17 @@ def _parse_due_date(value: str | None) -> date | None:
         return date.fromisoformat(value)
     except ValueError:
         return None
+
+
+def _embedding_text(task) -> str:
+    parts = [task.title]
+    if task.description:
+        parts.append(task.description)
+    return "\n".join(parts)
+
+
+def _sync_embedding(embeddings: EmbeddingService, task) -> None:
+    embeddings.upsert(ids=[str(task.id)], documents=[_embedding_text(task)])
 
 
 @router.get("/", response_model=TaskListResponse)
@@ -86,10 +98,14 @@ def list_tasks(
 
 @router.post("/", response_model=TaskRead, status_code=201)
 def create_task(
-    task_in: TaskCreate, db: Session = Depends(get_db), cache: redis.Redis = Depends(get_redis)
+    task_in: TaskCreate,
+    db: Session = Depends(get_db),
+    cache: redis.Redis = Depends(get_redis),
+    embeddings: EmbeddingService = Depends(get_embedding_service),
 ):
     task = task_service.create_task(db, task_in)
     invalidate_task_list_cache(cache)
+    _sync_embedding(embeddings, task)
     return task
 
 
@@ -99,6 +115,7 @@ def create_task_from_text(
     db: Session = Depends(get_db),
     cache: redis.Redis = Depends(get_redis),
     llm: LLMService = Depends(get_llm_service),
+    embeddings: EmbeddingService = Depends(get_embedding_service),
 ):
     try:
         extracted = llm.extract_task(payload.text, reference_date=date.today().isoformat())
@@ -117,7 +134,21 @@ def create_task_from_text(
 
     task = task_service.create_task(db, task_in)
     invalidate_task_list_cache(cache)
+    _sync_embedding(embeddings, task)
     return task
+
+
+@router.get("/search", response_model=list[TaskRead])
+def search_tasks(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    embeddings: EmbeddingService = Depends(get_embedding_service),
+):
+    matched_ids = embeddings.search(q, n_results=limit)
+    matched_int_ids = [int(task_id) for task_id in matched_ids]
+    tasks_by_id = {task.id: task for task in task_service.get_tasks_by_ids(db, matched_int_ids)}
+    return [tasks_by_id[task_id] for task_id in matched_int_ids if task_id in tasks_by_id]
 
 
 @router.get("/{task_id}", response_model=TaskRead)
@@ -131,6 +162,7 @@ def update_task(
     task_in: TaskUpdate,
     db: Session = Depends(get_db),
     cache: redis.Redis = Depends(get_redis),
+    embeddings: EmbeddingService = Depends(get_embedding_service),
 ):
     task = _get_task_or_404(db, task_id)
     try:
@@ -138,16 +170,21 @@ def update_task(
     except task_service.IncompleteDependenciesError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     invalidate_task_list_cache(cache)
+    _sync_embedding(embeddings, updated)
     return updated
 
 
 @router.delete("/{task_id}", status_code=204)
 def delete_task(
-    task_id: int, db: Session = Depends(get_db), cache: redis.Redis = Depends(get_redis)
+    task_id: int,
+    db: Session = Depends(get_db),
+    cache: redis.Redis = Depends(get_redis),
+    embeddings: EmbeddingService = Depends(get_embedding_service),
 ):
     task = _get_task_or_404(db, task_id)
     task_service.delete_task(db, task)
     invalidate_task_list_cache(cache)
+    embeddings.delete(ids=[str(task_id)])
 
 
 @router.post("/{task_id}/dependencies", response_model=TaskRead, status_code=201)
