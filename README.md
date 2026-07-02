@@ -71,14 +71,18 @@ Halfway through the tasks for backend development track, I realized that I was m
 1. ChromaDB's local embedder is not optmized for task-related AI. Perhaps it is currently chosen to prioritize speed, but a customized embedder might take speed and accuracy.
 2. Although prompting Anthropic is best current choice for priority recommendation, it has per-call cost and latency drawbacks that can be improved with more time and labeled dataset.
 3. Most current code is written by ClaudeCode although briefly proofread by me because of drawbacks in time. Hence, code style is probably not coherent.
-4. CLAUDE.md has unneeded information.  
+4. CLAUDE.md has unneeded information.
+5. LLM-backed GET is not cached, more latency and cost via Anthropic API.
+6. Task breakdown mentioned as the other AI feature is unbuilt, abandoned for time scrunch.  
 
 ## Future improvements
 1. With more time, I will write my own embedder, and I have experience doing and am confident such task will be done well.
 2. With a labeled dataset and time on my hands, I can train my own sklearn classifier for priority reccomendation.
 3. Coherent code style and documentation
 4. Better commit messages
-5. CLAUDE.md made more concise and precise. 
+5. CLAUDE.md made more concise and precise.
+6. Cache GETs.
+7. Add task breakdown feature.
 
 ## Docs
 
