@@ -1,4 +1,4 @@
-# Creaition Backend
+# Creaition AI/LLM Development
 
 Task management API with LLM-powered features (natural language task creation, tag suggestions, priority recommendations) on top of a standard CRUD backend.
 
