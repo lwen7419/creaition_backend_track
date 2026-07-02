@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -12,6 +12,7 @@ class TaskBase(BaseModel):
     status: TaskStatus = TaskStatus.pending
     priority: TaskPriority = TaskPriority.medium
     tags: list[str] = Field(default_factory=list)
+    due_date: date | None = None
 
     @field_validator("title")
     @classmethod
@@ -33,6 +34,7 @@ class TaskUpdate(BaseModel):
     status: TaskStatus | None = None
     priority: TaskPriority | None = None
     tags: list[str] | None = None
+    due_date: date | None = None
 
     @field_validator("title")
     @classmethod
@@ -63,6 +65,18 @@ class TaskListResponse(BaseModel):
 
 class TaskDependencyCreate(BaseModel):
     depends_on_id: int
+
+
+class TaskFromTextRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+
+
+class TagSuggestionsResponse(BaseModel):
+    tags: list[str]
+
+
+class PriorityRecommendationResponse(BaseModel):
+    priority: TaskPriority
 
 
 class TaskTreeNode(BaseModel):

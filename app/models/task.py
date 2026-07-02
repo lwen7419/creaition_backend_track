@@ -5,6 +5,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Column,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -62,6 +63,7 @@ class Task(Base):
         index=True,
     )
     tags = Column(JSON, nullable=False, default=list)
+    due_date = Column(Date, nullable=True)
     created_at = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), index=True
     )

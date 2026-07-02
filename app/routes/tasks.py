@@ -1,7 +1,10 @@
+from datetime import date
 from typing import Literal
 
+import anthropic
 import redis
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.cache import build_task_list_cache_key, get_redis, invalidate_task_list_cache
@@ -9,14 +12,18 @@ from app.config import settings
 from app.database import get_db
 from app.models.task import TaskPriority, TaskStatus
 from app.schemas.task import (
+    PriorityRecommendationResponse,
+    TagSuggestionsResponse,
     TaskCreate,
     TaskDependencyCreate,
+    TaskFromTextRequest,
     TaskListResponse,
     TaskRead,
     TaskTreeNode,
     TaskUpdate,
 )
 from app.services import task_service
+from app.services.llm_service import LLMService, get_llm_service
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -26,6 +33,15 @@ def _get_task_or_404(db: Session, task_id: int):
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+
+def _parse_due_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
 
 
 @router.get("/", response_model=TaskListResponse)
@@ -72,6 +88,33 @@ def list_tasks(
 def create_task(
     task_in: TaskCreate, db: Session = Depends(get_db), cache: redis.Redis = Depends(get_redis)
 ):
+    task = task_service.create_task(db, task_in)
+    invalidate_task_list_cache(cache)
+    return task
+
+
+@router.post("/from-text", response_model=TaskRead, status_code=201)
+def create_task_from_text(
+    payload: TaskFromTextRequest,
+    db: Session = Depends(get_db),
+    cache: redis.Redis = Depends(get_redis),
+    llm: LLMService = Depends(get_llm_service),
+):
+    try:
+        extracted = llm.extract_task(payload.text, reference_date=date.today().isoformat())
+    except anthropic.APIError as exc:
+        raise HTTPException(status_code=502, detail="Failed to extract task from text") from exc
+
+    try:
+        task_in = TaskCreate(
+            title=extracted.get("title", ""),
+            description=extracted.get("description"),
+            due_date=_parse_due_date(extracted.get("due_date")),
+            priority=extracted.get("priority", TaskPriority.medium),
+        )
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     task = task_service.create_task(db, task_in)
     invalidate_task_list_cache(cache)
     return task
@@ -146,3 +189,27 @@ def remove_task_dependency(
 def get_task_dependency_tree(task_id: int, db: Session = Depends(get_db)):
     task = _get_task_or_404(db, task_id)
     return task_service.build_dependency_tree(task)
+
+
+@router.get("/{task_id}/suggested-tags", response_model=TagSuggestionsResponse)
+def get_suggested_tags(
+    task_id: int, db: Session = Depends(get_db), llm: LLMService = Depends(get_llm_service)
+):
+    task = _get_task_or_404(db, task_id)
+    try:
+        tags = llm.suggest_tags(task.title, task.description)
+    except anthropic.APIError as exc:
+        raise HTTPException(status_code=502, detail="Failed to suggest tags") from exc
+    return TagSuggestionsResponse(tags=tags)
+
+
+@router.get("/{task_id}/recommended-priority", response_model=PriorityRecommendationResponse)
+def get_recommended_priority(
+    task_id: int, db: Session = Depends(get_db), llm: LLMService = Depends(get_llm_service)
+):
+    task = _get_task_or_404(db, task_id)
+    try:
+        priority = llm.recommend_priority(task.title, task.description)
+    except anthropic.APIError as exc:
+        raise HTTPException(status_code=502, detail="Failed to recommend priority") from exc
+    return PriorityRecommendationResponse(priority=priority)
