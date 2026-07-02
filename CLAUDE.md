@@ -23,17 +23,20 @@ The core deliverable is a task management API where tasks can also be created an
 
 ```
 project/
-├── README.md
-├── requirements.txt / package.json
-├── .gitignore
 ├── src/
 │   ├── models/
-│   ├── controllers/
-│   ├── services/
+│   ├── schemas/
 │   ├── routes/
+│   ├── services/
+│   │   ├── task_service.py
+│   │   ├── llm_service.py 
+│   │   └── embedding_service.py  
 │   └── utils/
-├── tests/ (optional but recommended)
-└── docs/ (optional)
+├── tests/
+├── requirements.txt
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
 ## Data Model
@@ -63,6 +66,17 @@ project/
 5. **Task breakdown** — `POST /tasks/{id}/breakdown`. LLM splits a task into 3-6 subtasks, persisted as new `Task` rows with `parent_task_id` set.
 
 Only build 2 of the "AI Assistant Features" list from the challenge beyond extraction/tagging — semantic search and task breakdown are the two selected here. Don't add summarization or similar-task-detection unless explicitly asked.
+
+## Cleanup Pass (run when asked, or if you notice leftovers)
+ 
+Because this project pivoted from Backend track to AI/LLM track mid-build, there may be leftover files, folders, or code that were relevant to the old track but aren't needed anymore. When asked to review or clean up the repo, scan for and flag (don't silently delete — confirm first):
+ 
+- Stray docs/architecture files (e.g. `docs/`, `DESIGN.md`, `ARCHITECTURE.md`) — this project keeps all design reasoning in the README only, per "Documentation" above
+- Backend-track-only features not required by the AI/LLM track: advanced filtering/sorting/pagination beyond basic list, task dependency graph endpoints, rate limiting, auth/JWT scaffolding, Docker/docker-compose files added for backend-track bonus points
+- Unused imports, empty modules, or route registrations left over from removed backend-track endpoints
+- Any `controllers/` directory or files, per "Structural Decisions" above
+- README sections still describing the Backend track (Role Track field, feature checklist) that haven't been updated to reflect the AI/LLM track
+When flagging, list the file/folder, why it looks like a backend-track leftover, and whether it's dead code (safe to remove) or still wired into something (needs care before removing). Don't assume something is dead just because it looks backend-flavored — check for references first.
 
 ## Coding Conventions
 
